@@ -68,7 +68,10 @@ describe('recommendationService', () => {
 
   test('Retorna o último match em caso de empate para SingleProduct', () => {
     const formData = {
-      selectedPreferences: ['Automação de marketing', 'Integração com chatbots'],
+      selectedPreferences: [
+        'Automação de marketing',
+        'Integração com chatbots',
+      ],
       selectedRecommendationType: 'SingleProduct',
     };
 
@@ -79,5 +82,98 @@ describe('recommendationService', () => {
 
     expect(recommendations).toHaveLength(1);
     expect(recommendations[0].name).toBe('RD Conversas');
+  });
+
+  test('Retorna array vazio quando não há produtos', () => {
+    const formData = {
+      selectedPreferences: ['Automação de marketing'],
+      selectedRecommendationType: 'SingleProduct',
+    };
+
+    const recommendations = recommendationService.getRecommendations(
+      formData,
+      []
+    );
+
+    expect(recommendations).toHaveLength(0);
+  });
+
+  test('Retorna array vazio quando não há matches', () => {
+    const formData = {
+      selectedPreferences: ['Preferência inexistente'],
+      selectedRecommendationType: 'SingleProduct',
+    };
+
+    const recommendations = recommendationService.getRecommendations(
+      formData,
+      mockProducts
+    );
+
+    expect(recommendations).toHaveLength(0);
+  });
+});
+
+describe('Integridade dos dados', () => {
+  test('Não modifica os arrays de input', () => {
+    const originalProducts = [...mockProducts];
+    const originalFormData = {
+      selectedPreferences: ['Automação de marketing'],
+      selectedFeatures: ['Rastreamento de comportamento'],
+      selectedRecommendationType: 'SingleProduct',
+    };
+
+    recommendationService.getRecommendations(
+      originalFormData,
+      originalProducts
+    );
+
+    expect(originalProducts).toEqual(mockProducts);
+    expect(originalFormData.selectedPreferences).toEqual([
+      'Automação de marketing',
+    ]);
+  });
+
+  test('Mantém todas propriedades originais do produto', () => {
+    const formData = {
+      selectedPreferences: ['Automação de marketing'],
+      selectedRecommendationType: 'SingleProduct',
+    };
+
+    const recommendations = recommendationService.getRecommendations(
+      formData,
+      mockProducts
+    );
+
+    expect(recommendations[0]).toMatchObject({
+      name: expect.any(String),
+      score: expect.any(Number),
+      originalIndex: expect.any(Number),
+      preferences: expect.any(Array),
+      features: expect.any(Array),
+    });
+  });
+
+  test('Lida corretamente com propriedades undefined', () => {
+    const customProducts = [
+      {
+        name: 'Produto Teste',
+        preferences: undefined,
+        features: undefined,
+      },
+      ...mockProducts,
+    ];
+
+    const formData = {
+      selectedPreferences: ['Automação de marketing'],
+      selectedRecommendationType: 'SingleProduct',
+    };
+
+    const recommendations = recommendationService.getRecommendations(
+      formData,
+      customProducts
+    );
+
+    expect(recommendations.length).toBeGreaterThan(0);
+    expect(recommendations.some((p) => p.name === 'Produto Teste')).toBe(false);
   });
 });
